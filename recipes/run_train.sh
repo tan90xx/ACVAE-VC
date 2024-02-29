@@ -1,18 +1,19 @@
 #!/bin/bash
 
 # Copyright 2021 Hirokazu Kameoka
-# 
+#
 # Usage:
 # ./run_train.sh [-g gpu] [-a arch_type] [-s stage] [-e exp_name]
 # Options:
-#     -g: GPU device# 
+#     -g: GPU device#
 #     -a: Architecture type ("conv" or "rnn")
 #     -s: Stage to start (0 or 1)
 #     -e: Experiment name (e.g., "exp1")
 
 # Default values
-db_dir="/path/to/dataset/training"
-dataset_name="mydataset"
+db_dir="/data/hdd0/tianyi.tan/vcc2018/vcc2018_training"
+dataset_name="vcc2018"
+target_dir="/data/hdd0/tianyi.tan"
 gpu=0
 arch_type="conv"
 start_stage=0
@@ -27,12 +28,12 @@ while getopts "g:a:s:e:" opt; do
        esac
 done
 
-feat_dir="./dump/${dataset_name}/feat/train"
-dconf_path="./dump/${dataset_name}/data_config.json"
-stat_path="./dump/${dataset_name}/stat.pkl"
-normfeat_dir="./dump/${dataset_name}/norm_feat/train"
-model_dir="./model/${dataset_name}"
-log_dir="./logs/${dataset_name}"
+feat_dir="${target_dir}/dump/${dataset_name}/feat/train"
+dconf_path="${target_dir}/dump/${dataset_name}/data_config.json"
+stat_path="${target_dir}/dump/${dataset_name}/stat.pkl"
+normfeat_dir="${target_dir}/dump/${dataset_name}/norm_feat/train"
+model_dir="${target_dir}/model/${dataset_name}"
+log_dir="${target_dir}/logs/${dataset_name}"
 
 # Stage 0: Feature extraction
 if [[ ${start_stage} -le 0 ]]; then

@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import math
 
 import module as md
-   
+
 class Encoder1(nn.Module):
     # 1D Strided Convolution
     def __init__(self, in_ch, clsnum, out_ch, mid_ch):
@@ -41,7 +41,7 @@ class Encoder1(nn.Module):
         mu, ln_var = torch.split(out,out.shape[1]//2,dim=1)
 
         ln_var = torch.clamp(ln_var, min = -50.0, max = 0.0)
-        
+
         return mu, ln_var
 
 class Encoder2(nn.Module):
@@ -78,9 +78,9 @@ class Encoder2(nn.Module):
         mu, ln_var = torch.split(out,out.shape[1]//2,dim=1)
 
         ln_var = torch.clamp(ln_var, min = -50.0, max = 0.0)
-        
+
         return mu, ln_var
-    
+
 class Decoder1(nn.Module):
     # 1D Strided Convolution
     def __init__(self, in_ch, clsnum, out_ch, mid_ch):
@@ -103,7 +103,7 @@ class Decoder1(nn.Module):
         out = self.le3(out)
         out = md.concat_dim1(out,y)
         out = self.le4(out)
-        
+
         if num_frames is not None:
             out = out.clone()[:,:,0:num_frames]
         mu, ln_var = torch.split(out,out.shape[1]//2,dim=1)
@@ -116,7 +116,7 @@ class Decoder2(nn.Module):
     # MLP+BiLSTM+MLP
     def __init__(self, in_ch, clsnum, out_ch, mid_ch, num_layers=2, negative_slope=0.1):
         super(Decoder2, self).__init__()
-        
+
         self.start = md.LinearWN(in_ch+clsnum, mid_ch)
         self.lrelu0 = nn.LeakyReLU(negative_slope)
         self.rnn = nn.LSTM(
@@ -146,7 +146,7 @@ class Decoder2(nn.Module):
         mu, ln_var = torch.split(out,out.shape[1]//2,dim=1)
 
         ln_var = torch.clamp(ln_var, min = -50.0, max = 0.0)
-        
+
         return mu, ln_var
 
 class Classifier1(nn.Module):
@@ -184,7 +184,7 @@ class Classifier1(nn.Module):
         p = self.sm1(d)
 
         return d, p
-    
+
 class ACVAE(nn.Module):
     def __init__(self, enc, dec, cls):
         super(ACVAE, self).__init__()
@@ -197,7 +197,7 @@ class ACVAE(nn.Module):
         epsilon = torch.randn(z_mu.shape).to(device, dtype=torch.float)
         z = z_mu + torch.sqrt(torch.exp(z_lnvar)) * epsilon
         return z
-        
+
     def gaussian_kl_divergence(self, z_mu, z_lnvar):
         kl = -0.5 * torch.mean(1 + z_lnvar - z_mu**2 - torch.exp(z_lnvar))
         return kl
@@ -218,12 +218,12 @@ class ACVAE(nn.Module):
         N_s, n_ch_s, n_frame_s =  x_s.shape
         N_t, n_ch_t, n_frame_t =  x_t.shape
         n_y = clsnum
-        L_s = np.eye(n_y,dtype=np.int)[clsind_s]
-        L_t = np.eye(n_y,dtype=np.int)[clsind_t]
-        
+        L_s = np.eye(n_y,dtype=np.int_)[clsind_s]
+        L_t = np.eye(n_y,dtype=np.int_)[clsind_t]
+
         l_s = torch.tensor(L_s).to(device, dtype=torch.float)
         l_t = torch.tensor(L_t).to(device, dtype=torch.float)
-        
+
         # Encode x_s
         z_mu_s, z_ln_var_s = self.enc(x_s, l_s)
         z_s = self.gaussian(z_mu_s, z_ln_var_s)
@@ -243,7 +243,7 @@ class ACVAE(nn.Module):
         #t2t reconstruction
         x_mu_tt, x_ln_var_tt = self.dec(z_t, l_t, n_frame_t)
         xf_tt = self.gaussian(x_mu_tt, x_ln_var_tt)
-        
+
         # VAE loss
         vae_loss_prior_s = self.gaussian_kl_divergence(z_mu_s, z_ln_var_s)
         vae_loss_like_s = self.gaussian_nll(x_s, x_mu_ss, x_ln_var_ss)
@@ -253,7 +253,7 @@ class ACVAE(nn.Module):
 
         vae_loss_prior = (vae_loss_prior_s + vae_loss_prior_t)/2.0
         vae_loss_like = (vae_loss_like_s + vae_loss_like_t)/2.0
-        
+
         # Domain classification loss defined as cross entropy
         # The smaller this value becomes, the greater the likelihood.
         dcr_s, _ = self.cls(x_s)
@@ -271,7 +271,7 @@ class ACVAE(nn.Module):
         dcf_tt = dcf_tt.permute(0,2,1)
         dcf_ts = dcf_ts.permute(0,2,1)
         # dcr_s: N x T x n_y array
-        
+
         dcr_s = torch.reshape(dcr_s, (-1,n_y))
         dcr_t = torch.reshape(dcr_t, (-1,n_y))
         dcf_ss = torch.reshape(dcf_ss, (-1,n_y))
@@ -288,7 +288,7 @@ class ACVAE(nn.Module):
         cf_tt = torch.tensor(clsind_t*np.ones(len(dcf_tt))).to(device, dtype=torch.long)
         cf_ts = torch.tensor(clsind_s*np.ones(len(dcf_ts))).to(device, dtype=torch.long)
         # cr_s: NT-dimensional vector
-        
+
         ClsLoss_r = (F.cross_entropy(dcr_s, cr_s)*dcr_s.shape[0]+
                      F.cross_entropy(dcr_t, cr_t)*dcr_t.shape[0])/(dcr_s.shape[0]+
                                                                    dcr_t.shape[0])

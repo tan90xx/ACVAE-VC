@@ -9,8 +9,10 @@ import logging
 
 import torch
 from torch import optim
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
+
+import wandb
 
 from dataset import MultiDomain_Dataset, collate_fn
 import net
@@ -30,12 +32,13 @@ def Train(model, epochs, train_loader, optimizer, device, model_dir, log_path, s
         os.makedirs(os.path.dirname(log_path))
     logging.basicConfig(filename=log_path, filemode='w', level=logging.INFO, format=fmt, datefmt=datafmt)
 
-    writer = SummaryWriter(os.path.dirname(log_path))
-
+    # writer = SummaryWriter(os.path.dirname(log_path))
+    
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
 
     tag = 'acvae'
+    wandb.init(project=tag)
     checkpointpath = os.path.join(model_dir, '{}.{}.pt'.format(resume,tag))
     if os.path.exists(checkpointpath):
         checkpoint = torch.load(checkpointpath, map_location=device)
@@ -87,12 +90,18 @@ def Train(model, epochs, train_loader, optimizer, device, model_dir, log_path, s
 
             logging.info('epoch {}, mini-batch {}: VAE_Prior={:.4f}, VAE_Likelihood={:.4f}, VAE_ClsLoss={:.4f}, ClsLoss_r={:.4f}, ClsLoss_f={:.4f}'
                         .format(epoch, b+1, VAELoss_prior, VAELoss_like, ClsLoss_f, ClsLoss_r, ClsLoss_f))
-            writer.add_scalars('Loss/Total_Loss',  {'total_loss': total_loss_mean, 
-                                                    'like_loss': like_loss_mean, 
+            '''
+            writer.add_scalars('Loss/Total_Loss',  {'total_loss': total_loss_mean,
+                                                    'like_loss': like_loss_mean,
                                                     'prior_loss': prior_loss_mean,
                                                     'cls_loss_f': cls_loss_f_mean,
                                                     'cls_loss_r': cls_loss_r_mean}, n_iter)
-
+            '''
+            wandb.log({'total_loss': total_loss_mean,
+                       'like_loss': like_loss_mean,
+                       'prior_loss': prior_loss_mean,
+                       'cls_loss_f': cls_loss_f_mean,
+                       'cls_loss_r': cls_loss_r_mean})
             n_iter += 1
             b += 1
 
@@ -111,8 +120,8 @@ def main():
     parser.add_argument('--gpu', '-g', type=int, default=-1, help='GPU ID (negative value indicates CPU)')
     parser.add_argument('-ddir', '--data_rootdir', type=str, default='./dump/arctic/norm_feat/train',
                         help='root data folder that contains the normalized features')
-    parser.add_argument('--epochs', '-epoch', default=1000, type=int, help='number of epochs to learn')
-    parser.add_argument('--snapshot', '-snap', default=100, type=int, help='snapshot interval')
+    parser.add_argument('--epochs', '-epoch', default=2, type=int, help='number of epochs to learn')
+    parser.add_argument('--snapshot', '-snap', default=1, type=int, help='snapshot interval')
     parser.add_argument('--batch_size', '-batch', type=int, default=16, help='Batch size')
     parser.add_argument('--num_mels', '-nm', type=int, default=80, help='number of mel channels')
     parser.add_argument('--arch_type', '-arc', default='conv', type=str, help='architecture type (conv or rnn)')
@@ -171,7 +180,7 @@ def main():
     model_dir = os.path.join(args.model_rootdir, args.experiment_name)
     makedirs_if_not_exists(model_dir)
     log_path = os.path.join(args.log_dir, args.experiment_name, 'train_{}.log'.format(args.experiment_name))
-    
+
     # Save configuration as a json file
     config_path = os.path.join(model_dir, 'model_config.json')
     with open(config_path, 'w') as outfile:

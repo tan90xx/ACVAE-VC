@@ -10,11 +10,12 @@
 #     -c: Model checkpoint to load (0 indicates the newest model)
 #     -v: Vocoder type ("hifigan.v1" or "parallel_wavegan.v1")
 
-db_dir="/path/to/dataset/test"
-dataset_name="mydataset"
+db_dir="/data/hdd0/tianyi.tan/vcc2018/vcc2018_reference"
+dataset_name="vcc2018"
+target_dir="/data/hdd0/tianyi.tan"
 gpu=0
 checkpoint=0
-vocoder_type="hifigan.v1"
+vocoder_type="parallel_wavegan.v1"
 
 while getopts "g:e:c:v:" opt; do
        case $opt in
@@ -33,11 +34,14 @@ esac
 
 echo "Experiment name: ${exp_name}, Vocoder: ${vocoder_type}"
 
-dconf_path="./dump/${dataset_name}/data_config.json"
-stat_path="./dump/${dataset_name}/stat.pkl"
-out_dir="./out/${dataset_name}"
-model_dir="./model/${dataset_name}"
-vocoder_dir="pwg/egs/arctic_4spk_flen64ms_fshift8ms/voc1"
+dconf_path="${target_dir}/dump/${dataset_name}/data_config.json"
+stat_path="${target_dir}/dump/${dataset_name}/stat.pkl"
+out_dir="${target_dir}/out/${dataset_name}"
+model_dir="${target_dir}/model/${dataset_name}"
+# vocoder_dir="${target_dir}/pwg/egs/arctic_4spk_flen64ms_fshift8ms/voc1"
+# vocoder_dir="${target_dir}/pwg/egs/arctic_5spk_flen64ms_fshift8ms/voc1"
+# vocoder_dir="${target_dir}/pwg/egs/ATR_all_flen64ms_fshift8ms/voc1"
+vocoder_dir="${target_dir}/pwg/egs/seiyu_flen64ms_fshift8ms/voc1"
 
 python convert.py -g ${gpu} \
 	--input ${db_dir} \
